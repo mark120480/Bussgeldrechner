@@ -1,0 +1,2193 @@
+
+<!DOCTYPE html>
+<html lang="de">
+
+<head>
+    <meta charset="UTF-8">
+    <!-- Bußgeldrechner Feedback Update -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SkylineRP - Bußgeldrechner v1.0</title>
+    <style>
+        :root {
+            --bg: #0a0a0c;
+            --panel: rgba(23, 23, 28, 0.95);
+            --accent-blue: #00d2ff;
+            --accent-purple: #9d50bb;
+            --gold: #ffcc00;
+            --gray: #6b7280;
+            --green: #4ade80;
+            --red: #ef4444;
+            --text: #f3f4f6;
+            --blue-star: #3b82f6;
+            --font-main: 'Segoe UI', sans-serif;
+            --border-rad: 12px;
+        }
+
+        /* 1. Liquid Glass Theme */
+        body.liquid-glass {
+            --bg: linear-gradient(135deg, #0c0c0e 0%, #1a1a2e 50%, #0a0a0c 100%);
+            --panel: rgba(255, 255, 255, 0.08);
+            background: var(--bg);
+            background-attachment: fixed;
+        }
+
+        .liquid-glass .glass-box,
+        .liquid-glass .catalog-container {
+            background: rgba(255, 255, 255, 0.08);
+            backdrop-filter: blur(20px) saturate(180%);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+
+        .liquid-glass .offense-card {
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            backdrop-filter: blur(15px);
+        }
+
+        /* 2. Deep Space Theme */
+        body.deep-space {
+            --bg: #0f0c29;
+            --panel: rgba(20, 20, 40, 0.85);
+            --accent-blue: #b08bf8;
+            --accent-purple: #6a0dad;
+            --gold: #ffd700;
+            --text: #e0e0ff;
+            background: linear-gradient(to right, #24243e, #302b63, #0f0c29);
+            background-attachment: fixed;
+        }
+
+        .deep-space .glass-box,
+        .deep-space .catalog-container {
+            background: rgba(15, 12, 41, 0.7);
+            border: 1px solid rgba(176, 139, 248, 0.2);
+            box-shadow: 0 0 15px rgba(106, 13, 173, 0.2);
+            backdrop-filter: blur(10px);
+        }
+
+        .deep-space .offense-card {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .deep-space .offense-card.active {
+            background: rgba(106, 13, 173, 0.3);
+            border-color: var(--accent-blue);
+            box-shadow: 0 0 10px var(--accent-purple);
+        }
+
+        /* General Styles */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: var(--font-main);
+        }
+
+        body {
+            background: var(--bg);
+            background-image: radial-gradient(circle at 50% 50%, #1a1a2e 0%, #050505 100%);
+            color: var(--text);
+            min-height: 100vh;
+            padding: 10px;
+            font-size: 0.85rem;
+            transition: background 0.3s;
+        }
+
+        .main-layout {
+            display: grid;
+            grid-template-columns: 1fr 340px;
+            gap: 10px;
+            max-width: 1500px;
+            margin: 0 auto;
+        }
+
+        /* Credits Header */
+        .header-credits {
+            flex-wrap: wrap;
+            row-gap: 8px;
+            grid-column: 1 / -1;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 15px;
+            background: var(--panel);
+            border-radius: var(--border-rad);
+            margin-bottom: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: var(--accent-blue);
+            font-weight: bold;
+            font-size: 0.85rem;
+        }
+
+        .catalog-container {
+            background: var(--panel);
+            border-radius: var(--border-rad);
+            padding: 15px;
+            height: calc(100vh - 80px);
+            overflow-y: auto;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            position: relative;
+        }
+
+        .catalog-container::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .catalog-container::-webkit-scrollbar-thumb {
+            background: var(--accent-purple);
+            border-radius: 10px;
+        }
+
+        .search-container {
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            background: var(--panel);
+            padding-bottom: 12px;
+            margin-bottom: 5px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .category-header {
+            color: var(--gold);
+            border-bottom: 2px solid rgba(255, 204, 0, 0.3);
+            margin: 25px 0 10px;
+            padding-bottom: 4px;
+            text-transform: uppercase;
+            font-size: 0.95rem;
+            letter-spacing: 0.5px;
+            font-weight: 700;
+        }
+
+        .offenses-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+            gap: 8px;
+        }
+
+        /* List Mode Styles */
+        .offenses-grid.list-mode {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        /* Minimal Mode Styles */
+        .offenses-grid.minimal-mode {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .list-header-row {
+            display: none;
+            grid-template-columns: 80px 1fr 100px 90px;
+            padding: 10px 15px;
+            color: #888;
+            font-weight: bold;
+            border-bottom: 1px solid #333;
+            margin-bottom: 10px;
+            position: sticky;
+            top: 60px;
+            z-index: 9;
+            background: var(--panel);
+        }
+
+        .list-view-active .list-header-row {
+            display: grid;
+        }
+
+        .offense-card {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            padding: 10px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: 0.2s;
+            user-select: none;
+            position: relative;
+            min-height: 70px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        /* LIST ITEM GRID SETUP */
+        .offense-card.list-item {
+            display: grid;
+            grid-template-columns: 80px 1fr 100px 90px;
+            /* ID | Name | Stars | Price */
+            align-items: center;
+            padding: 6px 12px;
+            gap: 10px;
+            border-radius: 6px;
+            min-height: auto;
+        }
+
+        .offense-card.minimal-item {
+            display: grid;
+            grid-template-columns: 80px 1fr 80px;
+            align-items: center;
+            padding: 4px 8px;
+            gap: 10px;
+            border-radius: 4px;
+            min-height: auto;
+            background: rgba(0, 0, 0, 0.2);
+            font-size: 0.8rem;
+        }
+
+        .offense-card.list-item h4,
+        .offense-card.minimal-item h4 {
+            margin: 0;
+            font-size: 0.8rem;
+        }
+
+        .offense-card.list-item p,
+        .offense-card.minimal-item p {
+            margin: 0;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            font-size: 0.75rem;
+        }
+
+        /* Price alignment */
+        .offense-card.list-item .price,
+        .offense-card.minimal-item .price {
+            text-align: right;
+            font-size: 0.8rem;
+        }
+
+        /* Stars alignment in List Mode */
+        .offense-card.list-item .wanteds {
+            justify-self: center;
+            transform: scale(0.9);
+            display: flex;
+            /* Ensure stars are visible */
+            white-space: nowrap;
+        }
+
+        .offense-card:hover {
+            transform: translateY(-2px);
+            border-color: var(--accent-blue);
+            background: rgba(255, 255, 255, 0.08);
+        }
+
+        .offense-card.list-item:hover,
+        .offense-card.minimal-item:hover {
+            transform: none;
+            background: rgba(255, 255, 255, 0.12);
+        }
+
+        .offense-card.active {
+            border-color: var(--accent-purple);
+            background: rgba(157, 80, 187, 0.15);
+            box-shadow: 0 0 15px rgba(157, 80, 187, 0.1);
+        }
+
+        .offense-card.voluntary {
+            border-color: var(--gold);
+            background: rgba(255, 204, 0, 0.08);
+            box-shadow: 0 0 18px rgba(255, 204, 0, 0.12);
+        }
+
+        .offense-card h4 {
+            font-size: 0.8rem;
+            color: var(--accent-blue);
+            margin-bottom: 4px;
+        }
+
+        .offense-card p {
+            font-size: 0.75rem;
+            color: #bbb;
+            margin-bottom: 0;
+        }
+
+        .price {
+            color: var(--green);
+            font-weight: bold;
+        }
+
+        .wanteds {
+            white-space: nowrap;
+        }
+
+        .mini-star {
+            font-size: 0.95rem;
+            margin-left: 2px;
+            display: inline-block;
+            pointer-events: none;
+        }
+
+        .mini-star.yellow {
+            color: var(--gold);
+            text-shadow: 0 0 5px rgba(255, 204, 0, 0.3);
+        }
+
+        .mini-star.gray {
+            color: #333;
+        }
+
+        .mini-star.silver {
+            color: #cfcfcf;
+            text-shadow: 0 0 6px rgba(255, 255, 255, 0.06);
+            transform: scale(1.02);
+        }
+
+        /* Dashboard Styles */
+        .dashboard {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            position: sticky;
+            top: 0;
+            max-height: calc(100vh - 20px);
+            overflow-y: auto;
+            padding-right: 2px;
+        }
+
+        .dashboard::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        .glass-box {
+            background: var(--panel);
+            border-radius: var(--border-rad);
+            padding: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(15px);
+        }
+
+        .total-money {
+            font-size: 1.8rem;
+            color: var(--green);
+            text-align: center;
+            font-weight: 800;
+            text-shadow: 0 0 20px rgba(74, 222, 128, 0.4);
+            margin: 5px 0;
+        }
+
+        #res-stars {
+            text-align: center;
+            margin-top: 8px;
+            display: flex;
+            justify-content: center;
+            gap: 6px;
+        }
+
+        .big-star {
+            font-size: 1.6rem;
+            transition: all 0.4s;
+            cursor: pointer;
+        }
+
+        .big-star.active-yellow {
+            color: var(--gold);
+            text-shadow: 0 0 30px var(--gold);
+            transform: scale(1.1);
+        }
+
+        .big-star.active-gray {
+            color: var(--gray);
+            text-shadow: 0 0 20px rgba(255, 255, 255, 0.2);
+            transform: scale(1.1);
+        }
+
+        .big-star.empty {
+            color: rgba(255, 255, 255, 0.05);
+        }
+
+        .big-star.voluntary-inactive {
+            color: #C0C0C0;
+            text-shadow: 0 0 10px rgba(192, 192, 192, 0.3);
+            cursor: pointer;
+        }
+
+        .big-star.voluntary-active {
+            color: var(--gold);
+            text-shadow: 0 0 25px var(--gold);
+            transform: scale(1.1);
+            cursor: pointer;
+        }
+
+        .big-star.voluntary-inactive:hover,
+        .big-star.voluntary-active:hover {
+            transform: scale(1.2);
+            transition: all 0.2s ease;
+        }
+
+        /* REUE CONTAINER - FIXED LAYOUT */
+        .reue-container {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            padding: 5px 0;
+        }
+
+        .toggle-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(255, 255, 255, 0.03);
+            padding: 8px 10px;
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 44px;
+            height: 22px;
+        }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #333;
+            transition: .4s;
+            border-radius: 34px;
+            border: 1px solid #555;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 16px;
+            width: 16px;
+            left: 2px;
+            bottom: 2px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+
+        input:checked+.slider {
+            background-color: var(--accent-blue);
+            border-color: var(--accent-blue);
+        }
+
+        input:checked+.slider:before {
+            transform: translateX(22px);
+        }
+
+        .akte-output {
+            background: #000;
+            color: #00ff41;
+            padding: 12px;
+            border-radius: 8px;
+            font-family: 'Consolas', monospace;
+            min-height: 80px;
+            cursor: pointer;
+            margin-top: 5px;
+            border: 1px solid #333;
+            font-size: 0.85rem;
+            line-height: 1.4;
+            transition: 0.3s;
+            word-break: break-all;
+        }
+
+        .akte-output:hover {
+            border-color: var(--accent-blue);
+            box-shadow: 0 0 15px rgba(0, 210, 255, 0.2);
+        }
+
+        .warning-box {
+            background: rgba(239, 68, 68, 0.15);
+            border-left: 5px solid var(--red);
+            padding: 10px;
+            margin-top: 8px;
+            display: none;
+            border-radius: 0 10px 10px 0;
+        }
+
+        /* Inputs */
+        input,
+        select {
+            background: rgba(0, 0, 0, 0.4);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            color: white;
+            padding: 8px;
+            font-size: 0.9rem;
+            border-radius: 6px;
+            width: 100%;
+            margin-top: 4px;
+            transition: 0.2s;
+        }
+
+        input:focus,
+        select:focus {
+            border-color: var(--accent-blue);
+            outline: none;
+        }
+
+        #in-orga {
+            background: #000 !important;
+            color: #fff !important;
+        }
+
+        select {
+            background: #000 !important;
+            color: #fff !important;
+        }
+
+        select option {
+            background: #000;
+            color: #fff;
+        }
+
+        #copy-notice {
+            display: none;
+            background: rgba(0, 0, 0, 0.9);
+            color: #00ff41;
+            padding: 8px 12px;
+            border-radius: 8px;
+            position: fixed;
+            right: 30px;
+            top: 30px;
+            border: 1px solid #333;
+            z-index: 9999;
+        }
+
+        .modal-backdrop {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.8);
+            align-items: center;
+            justify-content: center;
+            z-index: 10000;
+            backdrop-filter: blur(5px);
+        }
+
+        .modal {
+            background: #161618;
+            color: #fff;
+            padding: 25px;
+            border-radius: 12px;
+            width: 600px;
+            max-width: 95%;
+            border: 1px solid #333;
+            font-size: 1rem;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.8);
+        }
+
+        .small-btn {
+            background: linear-gradient(180deg, #333, #222);
+            color: #fff;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 6px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            transition: 0.2s;
+        }
+
+        .small-btn:hover {
+            background: #444;
+            border-color: #666;
+        }
+
+        .reset-btn {
+            background: linear-gradient(45deg, var(--red), #991b1b);
+            color: white;
+            border: none;
+            padding: 12px;
+            border-radius: 8px;
+            font-weight: bold;
+            cursor: pointer;
+            width: 100%;
+            margin-top: 15px;
+            text-transform: uppercase;
+            transition: 0.3s;
+            font-size: 0.9rem;
+            box-shadow: 0 4px 15px rgba(239, 68, 68, 0.3);
+        }
+
+        .reset-btn:hover {
+            filter: brightness(1.2);
+            transform: translateY(-2px);
+        }
+
+        .view-btn {
+            background: var(--accent-blue);
+            color: #000;
+            font-weight: bold;
+            width: 100%;
+            margin-bottom: 5px;
+            padding: 10px;
+            border: none;
+            text-transform: uppercase;
+            font-size: 0.8rem;
+            letter-spacing: 1px;
+        }
+
+        /* Feedback Opener Button */
+        #feedback-opener-btn {
+            position: fixed;
+            right: 20px;
+            bottom: 80px;
+            z-index: 12000;
+            background: linear-gradient(45deg, #FFC107, #FF9800);
+            color: #000;
+            border: none;
+            padding: 10px 18px;
+            border-radius: 30px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
+            cursor: pointer;
+            font-weight: 700;
+            font-size: 0.9rem;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        #feedback-opener-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.5);
+        }
+
+        /* Support Button Fixed */
+        #support-btn {
+            position: fixed;
+            right: 20px;
+            bottom: 20px;
+            z-index: 12000;
+            background: linear-gradient(45deg, var(--accent-blue), var(--accent-purple));
+            color: #fff;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 30px;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.5);
+            cursor: pointer;
+            font-weight: 700;
+            font-size: 1rem;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        #support-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
+        }
+
+        @media (max-width: 1200px) {
+            .main-layout {
+                grid-template-columns: 1fr;
+            }
+
+            .dashboard {
+                position: relative;
+                top: unset;
+                max-height: none;
+            }
+        }
+
+        /* Feedback Modal Styles */
+        .feedback-star {
+            transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            color: #333;
+        }
+
+        .feedback-star.active {
+            color: var(--gold);
+            text-shadow: 0 0 15px rgba(255, 204, 0, 0.5);
+        }
+
+        .feedback-star.hover {
+            color: var(--gold);
+            transform: scale(1.3);
+            text-shadow: 0 0 20px rgba(255, 204, 0, 0.6);
+        }
+    </style>
+    <link rel="icon" href="logo.png" type="image/png">
+</head>
+
+<body>
+
+    <div class="main-layout">
+        <div class="header-credits">
+            <div>
+                <span style="color:#fff; font-size:1.1rem; margin-right:10px;">🛡️ Bußgeldrechner v1.0</span>
+                <span style="color:#666; font-weight:normal;">Erstellt für Skyline RP | Supported by Miki Dex</span>
+            </div>
+
+            <div style="display:flex; gap:6px; flex-wrap:wrap; align-items:center;">
+                <button class="small-btn" onclick="setAccent('#00d2ff')" style="color:#00d2ff">Blau</button>
+                <button class="small-btn" onclick="setAccent('#22c55e')" style="color:#22c55e">Grün</button>
+                <button class="small-btn" onclick="setAccent('#f97316')" style="color:#f97316">Orange</button>
+                <button class="small-btn" onclick="setAccent('#a855f7')" style="color:#a855f7">Lila</button>
+                <div style="width: 1px; height:20px; background: rgba(255,255,255,0.2); margin: 0 4px;"></div>
+                <button class="small-btn" onclick="setTheme('liquid-glass')">Glass</button>
+                <button class="small-btn" onclick="setTheme('deep-space')"
+                    style="background: linear-gradient(45deg, #24243e, #6a0dad); border: 1px solid #b08bf8;">Deep
+                    Space</button>
+                <button class="small-btn" onclick="setTheme('default')">Klassisch</button>
+                <button class="small-btn" onclick="openTutorial()"
+                    style="background:#00d2ff; color:#000; font-weight:bold;">?</button>
+            </div>
+        </div>
+
+        <div class="catalog-container" id="catalog-container">
+            <div class="search-container">
+                <input type="search" id="catalog-search" placeholder="Suche Gesetze, Paragraphen oder Namen..."
+                    style="width:100%; padding:12px; height: 45px; background:rgba(0,0,0,0.3);" />
+            </div>
+
+            <div class="list-header-row">
+                <div>Paragraph</div>
+                <div>Strafbestand</div>
+                <div style="text-align:center">Haftstrafe</div>
+                <div style="text-align:right">Bußgeld</div>
+            </div>
+
+            <div id="catalog-content">
+            </div>
+
+            <div id="tow-card" class="offense-card"
+                style="margin-bottom:14px; display:none; margin-top:20px; border-color:var(--accent-blue); background:rgba(0,210,255,0.05);">
+                <h4 style="color:var(--accent-blue); font-size:1rem;">🚓 TOW Rechner</h4>
+                <div style="display:grid; gap:8px; margin-top:12px;">
+                    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+                        <div>
+                            <label style="font-size:0.85rem; color:#bbb;">Kennzeichen:</label>
+                            <input id="tow-plate" placeholder="ABC-123" />
+                        </div>
+                        <div>
+                            <label style="font-size:0.85rem; color:#bbb;">Ort:</label>
+                            <input id="tow-location" placeholder="z.B. Market" />
+                        </div>
+                    </div>
+
+                    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+                        <div>
+                            <label style="font-size:0.85rem; color:#bbb;">Zone:</label>
+                            <select id="tow-zone">
+                                <option value="50">Verkehrsberuhigte Bereiche (50 km/h)</option>
+                                <option value="150" selected>Innerorts (150 km/h)</option>
+                                <option value="200">Außerorts (200 km/h)</option>
+                                <option value="350">Highway (350 km/h)</option>
+                                <option value="300">Freeway (300 km/h)</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label style="font-size:0.85rem; color:#bbb;">Gefahren:</label>
+                            <input id="tow-speed" type="number" placeholder="km/h" />
+                        </div>
+                    </div>
+
+                    <button id="tow-calc-btn" class="small-btn"
+                        style="background:var(--accent-blue); color:#000; font-weight:bold; margin-top:5px;">Berechnen</button>
+
+                    <input id="tow-offense" type="hidden" />
+                    <div style="background:rgba(0,0,0,0.3); padding:10px; border-radius:8px; margin-top:5px;">
+                        <div style="display:flex; justify-content:space-between;">
+                            <span style="color:#bbb;">Bußgeld:</span>
+                            <input id="tow-fine" readonly
+                                style="width:auto; background:transparent; border:none; text-align:right; color:var(--green); font-weight:bold; padding:0; height:auto;" />
+                        </div>
+                        <label style="font-size:0.8rem; color:#888; display:block; margin-top:5px;">Generierte
+                            Akte:</label>
+                        <input id="tow-akte" readonly
+                            style="font-family:monospace; color:#00ff41; background:rgba(0,0,0,0.5);" />
+                    </div>
+
+                    <div style="display:flex; gap:8px; margin-top:6px;">
+                        <button id="tow-copy-btn" class="small-btn"
+                            style="background:#16a34a; flex:1;">Kopieren</button>
+                        <button id="tow-reset-btn" class="small-btn" style="flex:1;">Reset</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="dashboard">
+            <button id="view-toggle" class="small-btn view-btn" onclick="cycleView()">Ansicht: Raster</button>
+            <button id="sort-toggle" class="small-btn view-btn" onclick="toggleSort()">Sortierung: Standard</button>
+
+            <div class="glass-box">
+                <p
+                    style="text-align:center; color:#888; font-size:0.75rem; letter-spacing: 2px; margin:0; text-transform:uppercase;">
+                    Gesamtstrafe</p>
+                <div class="total-money" id="res-money">$ 0</div>
+                <div id="res-stars"></div>
+                <div id="info-box-small" class="warning-box" style="margin-top:8px; display:none;">
+                    <strong style="color:var(--red); font-size:0.8rem;">❗ ZUSATZINFOS:</strong>
+                    <div id="info-list-small" style="font-size:0.75rem; margin-top:3px;"></div>
+                </div>
+            </div>
+
+            <div>
+                <h3 style="font-size:0.8rem; margin-left:2px; color:#bbb;">AKTENVERMERK</h3>
+                <div id="res-akte" class="akte-output" onclick="copyAkte()">Bitte Tatbestände wählen...</div>
+                <div style="text-align:right; font-size:0.7rem; color:#666; margin-top:2px;">Klicken zum Kopieren</div>
+            </div>
+            <div id="copy-notice">Akte kopiert!</div>
+
+            <div class="glass-box">
+                <div class="reue-container">
+                    <div class="toggle-row">
+                        <span style="font-weight:bold; color:#f97316; font-size:0.85rem;">Wiederholungstäter</span>
+                        <label class="switch">
+                            <input type="checkbox" id="repeat-switch" onchange="calculate()">
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+
+                    <div class="toggle-row">
+                        <span style="font-weight:bold; color: var(--accent-blue); font-size:0.85rem;">Langer
+                            Grund</span>
+                        <label class="switch">
+                            <input type="checkbox" id="long-reason-switch" onchange="calculate()">
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+
+                    <div class="toggle-row">
+                        <span style="font-weight:bold; color: var(--accent-purple); font-size:0.85rem;">§35 REUE
+                            (Milderung)</span>
+                        <label class="switch">
+                            <input type="checkbox" id="reue-switch" onchange="calculate()">
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <div class="glass-box" style="padding-top:10px;">
+                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:8px;">
+                    <div>
+                        <label style="font-size:0.7rem; color:#888; font-weight:bold;">SYSTEMWANTEDS</label>
+                        <input type="number" id="in-sys" value="0" min="0" oninput="calculate()">
+                    </div>
+                    <div>
+                        <label style="font-size:0.7rem; color:#888; font-weight:bold;">ABTRANSPORT DURCH</label>
+                        <select id="in-orga" onchange="calculate()">
+                            <option value="">- Orga -</option>
+                            <option value="LSPD">LSPD</option>
+                            <option value="SAHP">SAHP</option>
+                            <option value="NG">NG</option>
+                            <option value="USSS">USSS</option>
+                            <option value="FIB">FIB</option>
+                            <option value="GOV">GOV</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div style="margin-top:10px;">
+                    <input type="text" id="in-name" placeholder="Name des Beamten" oninput="calculate()">
+                    <input type="text" id="in-plate" placeholder="Kennzeichen (optional)" oninput="calculate()">
+                </div>
+
+                <div
+                    style="display:flex; align-items:center; justify-content:space-between; margin-top:10px; background:rgba(255,255,255,0.05); padding:6px 10px; border-radius:6px;">
+                    <span style="font-size:0.8rem; color:#bbb;">Systemfehler (+ Vermerk)</span>
+                    <label class="switch" style="transform:scale(0.8);">
+                        <input type="checkbox" id="sys-error-switch" onchange="calculate()">
+                        <span class="slider"></span>
+                    </label>
+                </div>
+            </div>
+
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:6px;">
+                <button id="tv-rights-btn" class="small-btn">📜 TV Rechte</button>
+                <button id="tow-open-btn" class="small-btn"
+                    style="background: linear-gradient(45deg, #1f2937, #111);">🚗 TOW Rechner</button>
+                <button id="anwaltsregister-btn" type="button" class="small-btn" style="grid-column: 1 / -1;">⚖️
+                    Anwaltsregister</button>
+            </div>
+
+            <button class="reset-btn" onclick="resetAll()">Alles Zurücksetzen</button>
+
+            <div style="margin-top:10px; text-align:center;">
+                <p style="font-size:0.7rem; color:#666;">Keine Haftung für fehlerhafte Berechnungen.</p>
+            </div>
+
+        </div>
+    </div>
+
+    <button id="feedback-opener-btn" title="Feedback geben">⭐ Feedback</button>
+    <button id="support-btn" title="Fehler melden / Support">💬 Support / Fehler</button>
+
+    <div id="support-modal" class="modal-backdrop" style="z-index:12001;">
+        <div class="modal" style="max-width:500px;">
+            <h3 style="margin-top:0; color:var(--accent-blue);">📨 Support & Fehler</h3>
+            <p style="font-size:0.8rem; color:#bbb; margin-bottom:15px;">Du hast einen Bug gefunden oder einen
+                Vorschlag? Schreib uns!</p>
+
+
+            <form id="support-form">
+                <label style="font-size:0.85rem; color:#bbb;">Dein Name (optional)</label>
+                <input name="name" type="text" placeholder="Name" />
+
+                <label style="font-size:0.85rem; color:#bbb; margin-top:10px; display:block;">Nachricht</label>
+                <textarea name="message" placeholder="Beschreibe das Problem..."
+                    style="width:100%; min-height:120px; padding:10px; background:rgba(0,0,0,0.3); border:1px solid rgba(255,255,255,0.1); color:white; border-radius:6px; margin-top:5px; resize:vertical;"
+                    required></textarea>
+
+                <div style="display:flex; gap:8px; margin-top:15px; justify-content:flex-end;">
+                    <button type="button" id="support-close" class="small-btn">Schließen</button>
+                    <button type="submit" class="small-btn"
+                        style="background:linear-gradient(45deg,#16a34a,#15803d); border-color:#16a34a;">Senden</button>
+                </div>
+            </form>
+
+            <script>
+                document.getElementById("support-form").addEventListener("submit", async (e) => {
+                    e.preventDefault();
+                    const form = e.target;
+                    const status = document.createElement("div");
+                    status.style.marginTop = "10px";
+                    status.style.fontSize = "0.85rem";
+                    form.appendChild(status);
+
+                    try {
+                        const formData = new FormData(form);
+                        const name = formData.get("name") || "Anonym";
+                        const message = formData.get("message");
+
+                        const payload = {
+                            embeds: [{
+                                title: "📨 Neuer Support-Eintrag",
+                                color: 0x00d2ff,
+                                fields: [
+                                    { name: "Name", value: name, inline: true },
+                                    { name: "Nachricht", value: message }
+                                ],
+                                timestamp: new Date().toISOString(),
+                                footer: { text: "Bußgeldrechner v1.0 Support" }
+                            }]
+                        };
+
+                        const res = await fetch("https://discord.com/api/webhooks/1473263620669309055/VYjjNUS-iQyUW4AS_QkvvN32tSr7y3C7iBWLmgoUTMou7pk9co2jFD86hR3rX3Ang4_V", {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify(payload)
+                        });
+
+                        if (res.ok) {
+                            status.innerHTML = "<span style='color:#22c55e'>✅ Nachricht erfolgreich gesendet!</span>";
+                            form.reset();
+                        } else {
+                            status.innerHTML = "<span style='color:#ef4444'>❌ Fehler beim Senden.</span>";
+                        }
+                    } catch {
+                        status.innerHTML = "<span style='color:#ef4444'>❌ Netzwerkfehler.</span>";
+                    }
+                });
+            </script>
+
+        </div>
+    </div>
+
+    <div id="tutorial-modal" class="modal-backdrop">
+        <div class="modal">
+            <h3
+                style="color:var(--accent-blue); margin-bottom:15px; border-bottom:1px solid #333; padding-bottom:10px;">
+                💡 Kurzanleitung</h3>
+            <div style="display:flex; flex-direction:column; gap:15px;">
+                <div>
+                    <strong style="color:var(--gold);">1. Tatbestände wählen</strong>
+                    <p style="color:#bbb; font-size:0.9rem;">Klicke im linken Bereich auf die Vergehen. Sie werden
+                        farbig markiert und zur Berechnung hinzugefügt.</p>
+                </div>
+                <div>
+                    <strong style="color:var(--gold);">2. Details anpassen</strong>
+                    <p style="color:#bbb; font-size:0.9rem;">Rechts kannst du Schalter wie "Reue" oder
+                        "Wiederholungstäter" aktivieren. Trage unten deinen Namen ein.</p>
+                </div>
+                <div>
+                    <strong style="color:var(--gold);">3. Wanteds anpassen</strong>
+                    <p style="color:#bbb; font-size:0.9rem;">Die Sterne werden automatisch berechnet. Du kannst auf die
+                        grauen Sterne klicken, um <strong>freiwillige Wanteds</strong> hinzuzufügen.</p>
+                </div>
+                <div>
+                    <strong style="color:var(--gold);">4. Akte kopieren</strong>
+                    <p style="color:#bbb; font-size:0.9rem;">Klicke einfach auf den grünen Textblock "AKTENVERMERK", um
+                        den Text für den Funk/PDA zu kopieren.</p>
+                </div>
+                <div>
+                    <strong style="color:var(--accent-blue);">Ansicht wechseln</strong>
+                    <p style="color:#bbb; font-size:0.9rem;">Nutze den Button oben rechts, um zwischen Kacheln, Liste
+                        und Kompakt-Ansicht zu wechseln.</p>
+                </div>
+            </div>
+            <div style="text-align:right; margin-top:20px;">
+                <button onclick="closeTutorial()" class="small-btn"
+                    style="background:var(--accent-blue); color:#000; font-weight:bold; padding:8px 20px;">Verstanden</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="tv-modal-backdrop" class="modal-backdrop">
+        <div class="modal">
+            <h3>Rechte des TV's</h3>
+            <ul style="line-height:1.6; padding-left:20px; color:#ddd; margin-top:10px;">
+                <li>Sie haben das Recht zu schweigen, alles was Sie sagen kann und wird gegen Sie verwendet werden.</li>
+                <li>Ab 2 Wanteds haben Sie das Recht auf einen staatlich anerkannten Anwalt, den Sie selbst benennen
+                    müssen.</li>
+                <li>Wenn kein Anwalt verfügbar ist, wird Ihnen keiner gestellt.</li>
+                <li>Die Judikative übernimmt der Exekutivbeamte.</li>
+                <li>Wenn ein Anwalt hinzugezogen wird, kann es länger als 25 Minuten dauern.</li>
+            </ul>
+            <p style="font-weight:bold; margin-top:20px; color:var(--accent-blue); text-align:center;">Haben Sie Ihre
+                Rechte verstanden?</p>
+            <div style="display:flex; gap:8px; margin-top:15px; justify-content:flex-end;">
+                <button id="tv-modal-close" class="small-btn">Schließen</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="anwaltsregister-modal-backdrop" class="modal-backdrop">
+        <div class="modal"
+            style="width: 90%; max-width: 1200px; height: 85vh; padding: 0; display:flex; flex-direction:column;">
+            <div
+                style="padding: 15px; border-bottom: 1px solid #333; display:flex; justify-content:space-between; align-items:center;">
+                <h3 style="margin: 0;">Anwaltsregister</h3>
+                <button id="anwaltsregister-modal-close" class="small-btn">Schließen</button>
+            </div>
+            <div style="flex:1; background:#fff;">
+                <iframe
+                    src="https://docs.google.com/spreadsheets/d/1DufMS-4hxX75e9bJk_z3jSHqCcO6JmimoqYh6M94zP0/preview#gid=690010630"
+                    style="width:100%; height: 100%; border: none;">
+                </iframe>
+            </div>
+        </div>
+    </div>
+
+    <div id="rights-warning"
+        style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); background:linear-gradient(45deg, var(--red), #7f1d1d); color:#fff; padding:25px 40px; border-radius:15px; box-shadow:0 20px 50px rgba(0,0,0,0.9); z-index:15000; text-align:center; border:1px solid rgba(255,255,255,0.2);">
+        <div style="font-size:3rem; margin-bottom:10px;">⚠️</div>
+        <strong style="font-size:1.3rem;">Rechte verlesen?</strong>
+        <p style="margin-top:5px; opacity:0.9;">Bevor die Akte in die Zwischenablage kopiert wird.</p>
+        <div style="display:flex; gap:15px; margin-top:20px; justify-content:center;">
+            <button id="rights-warning-no"
+                style="background:rgba(0,0,0,0.3); color:#fff; border:1px solid rgba(255,255,255,0.2); padding:10px 20px; border-radius:8px; cursor:pointer;">Nein,
+                abbrechen</button>
+            <button id="rights-warning-yes"
+                style="background:#fff; color:#991b1b; border:none; padding:10px 25px; border-radius:8px; cursor:pointer; font-weight:bold;">Ja,
+                verlesen</button>
+        </div>
+    </div>
+
+
+
+    <script>
+        const db = {
+            "Straßenverkehrsordnung (StVO)": [
+                { id: "StVO §1", name: "Gefährdung anderer Verkehrsteilnehmer", fine: 15000, wanteds: 0, mandatory: false, info: "Führerschein entziehen" },
+                { id: "StVO §2", name: "Missachtung des Rechtsfahrgebots", fine: 8000, wanteds: 0, mandatory: false },
+                { id: "StVO §3", name: "Überschreitung der Fahrzeugkapazität", fine: 7000, wanteds: 0, mandatory: false, info: "Führerschein entziehen" },
+                { id: "StVO §4", name: "Fahren mit demoliertem Fahrzeug", fine: 3000, wanteds: 0, mandatory: false },
+                { id: "StVO §5", name: "Fahren ohne Licht (Dunkelheit/Wetter)", fine: 5000, wanteds: 0, mandatory: false },
+                { id: "StVO §6", name: "Geschwindigkeitsüberschreitung 10 - 40 km/h", fine: 5000, wanteds: 0, mandatory: false },
+                { id: "StVO §7", name: "Geschwindigkeitsüberschreitung 41 - 60 km/h", fine: 10000, wanteds: 0, mandatory: false },
+                { id: "StVO §8", name: "Geschwindigkeitsüberschreitung 61 - 100 km/h", fine: 15000, wanteds: 0, mandatory: false, info: "Führerschein entziehen" },
+                { id: "StVO §9", name: "Geschwindigkeitsüberschreitung ab 101 km/h", fine: 20000, wanteds: 0, mandatory: false, info: "Führerschein entziehen" },
+                { id: "StVO §10", name: "Fahren ohne gültige Zulassung", fine: 10000, wanteds: 0, mandatory: false },
+                { id: "StVO §11", name: "Missachten von Rechts vor Links", fine: 1000, wanteds: 0, mandatory: false },
+                { id: "StVO §12", name: "Missachtung von Verkehrsschildern", fine: 2000, wanteds: 0, mandatory: false },
+                { id: "StVO §13", name: "Fahren ohne genügend Tankkapazität", fine: 10000, wanteds: 0, mandatory: false },
+                { id: "StVO §14", name: "Nutzung eines Mobilgeräts am Steuer", fine: 8000, wanteds: 0, mandatory: false },
+                { id: "StVO §15", name: "Lärmbelästigung / unnötiges Hupen", fine: 15000, wanteds: 0, mandatory: false },
+                { id: "StVO §16", name: "Überholen auf der rechten Fahrbahn", fine: 5000, wanteds: 0, mandatory: false },
+                { id: "StVO §17", name: "Fahren abseits von gekennzeichneten Wegen", fine: 15000, wanteds: 0, mandatory: false },
+                { id: "StVO §18", name: "Fahren auf der entgegengesetzten Fahrtrichtung", fine: 30000, wanteds: 0, mandatory: false, info: "Führerschein entziehen" },
+                { id: "StVO §19", name: "Falsch Parken / Halten", fine: 10000, wanteds: 0, mandatory: false },
+                { id: "StVO §20", name: "Bergung aus nicht befahrbarem Gelände", fine: 15000, wanteds: 0, mandatory: false },
+                { id: "StVO §21", name: "Fahren in berauschtem Zustand", fine: 10000, wanteds: 0, mandatory: false, voluntaryWanteds: 2, info: "Führerschein entziehen" },
+                { id: "StVO §22", name: "Fahren ohne Erste-Hilfe-Kit (Kofferraum)", fine: 8000, wanteds: 0, mandatory: false },
+                { id: "StVO §23", name: "Fahren ohne Gurt (nicht angeschnallt)", fine: 2000, wanteds: 0, mandatory: false },
+                { id: "StVO §24", name: "Fahrerflucht", fine: 15000, wanteds: 2, mandatory: true, info: "Führerschein entziehen" },
+            ],
+
+            "Psychische & Physische Integrität (StGB)": [
+                { id: "StGB §1.5", name: "Beleidigung", fine: 10000, wanteds: 0, voluntaryWanteds: 1, mandatory: false },
+                { id: "StGB §1.6", name: "Belästigung", fine: 10000, wanteds: 0, voluntaryWanteds: 1, mandatory: false },
+                { id: "StGB §3.7", name: "Drohung / Gewaltsame Drohung", fine: 5000, wanteds: 0, mandatory: false },
+                { id: "StGB §4.1", name: "Versuchter Mord / Mord", fine: 40000, wanteds: 4, mandatory: true },
+                { id: "StGB §5", name: "Körperverletzung", fine: 15000, wanteds: 2, mandatory: true },
+                { id: "StGB §6", name: "Körperverletzung mit Todesfolge", fine: 20000, wanteds: 3, mandatory: true },
+                { id: "StGB §7", name: "Gewaltsame Drohung", fine: 15000, wanteds: 2, voluntaryWanteds: 3, voluntaryFine: 5000, mandatory: true },
+                { id: "StGB §8", name: "Fahrlässige Tötung", fine: 25000, wanteds: 2, mandatory: true },
+                { id: "StGB §9", name: "Sexuelle Belästigung", fine: 20000, wanteds: 3, voluntaryWanteds: 1, voluntaryFine: 10000, mandatory: true },
+                { id: "StGB §16", name: "Sachbeschädigung", fine: 15000, wanteds: 2, mandatory: true },
+                { id: "StGB §55", name: "Unterlassene Hilfeleistung", fine: 10000, wanteds: 0, voluntaryWanteds: 3, mandatory: true },
+                { id: "StGB §19", name: "Prostitution", fine: 10000, wanteds: 0, mandatory: false },
+                { id: "StGB §20", name: "Freiheitsberaubung / Geiselnahme / Entführung", fine: 10000, wanteds: 4, mandatory: true },
+                { id: "StGB §21", name: "Errichtung von Straßenbarrikaden", fine: 40000, wanteds: 0, voluntaryWanteds: 2, mandatory: true },
+                { id: "StGB §22", name: "Verhalten in der Öffentlichkeit", fine: 10000, wanteds: 2, mandatory: false },
+                { id: "StGB §23", name: "Rassismus / Nachstellung (Stalking)", fine: 5000, wanteds: 2, mandatory: true },
+                { id: "StGB §24", name: "Fischwilderei", fine: 20000, wanteds: 3, mandatory: false },
+                { id: "StGB §25", name: "Verleumdung", fine: 5000, wanteds: 2, mandatory: false },
+                { id: "StGB §29", name: "Erpressung", fine: 50000, wanteds: 3, mandatory: true },
+                { id: "StGB §30", name: "Androhung einer Straftat", fine: 25000, wanteds: 3, voluntaryFine: 5000, mandatory: true }
+            ],
+            "Wirtschaftskriminalität (StGB)": [
+                { id: "StGB §10", name: "Diebstahl / Betrug", fine: 5000, wanteds: 0, voluntaryWanteds: 2, mandatory: true },
+                { id: "StGB §11", name: "Fahrzeug Diebstahl", fine: 20000, wanteds: 0, voluntaryWanteds: 2, mandatory: true },
+                { id: "StGB §12", name: "Besitz illegaler Gegenstände", fine: 10000, wanteds: 0, voluntaryWanteds: 2, mandatory: true },
+                { id: "StGB §13", name: "Raub", fine: 25000, wanteds: 3, mandatory: true },
+                { id: "StGB §14", name: "Geschäfts Raub / Ammu Rob", fine: 25000, wanteds: 4, mandatory: true, info: "Deckt alle Strafen ab (z.B. Terrorismus)", coversAll: true },
+                { id: "StGB §14.3", name: "ATM Raub", fine: 15000, wanteds: 2, mandatory: true },
+                { id: "StGB §16", name: "Einbruch", fine: 15000, wanteds: 2, mandatory: true },
+                { id: "StGB §15", name: "Steuerhinterziehung", fine: 50000, wanteds: 3, mandatory: true },
+                { id: "StGB §25", name: "Hausfriedensbruch", fine: 25000, wanteds: 1, mandatory: true },
+				{ id: "StGB §30", name: "Missachtung einer amtl. Anweisung", fine: 20000, wanteds: 3, mandatory: true },
+                { id: "StGB §41.1", name: "Besitz staatliches Eigentum (Waffen)", fine: 30000, wanteds: 2, mandatory: true, info: "Waffenschein entziehen" },
+                { id: "StGB §41.2", name: "Besitz staatliches Eigentum (Gegenstände)", fine: 50000, wanteds: 3, mandatory: true }
+            ],
+            "Umgang mit Beamten (StGB)": [
+                { id: "StGB §15.1", name: 'Nichtbefolgen einer amtlichen Anweisung', fine: 10000, wanteds: 0, voluntaryWanteds: 2, mandatory: true },
+                { id: "StGB §15.2", name: 'Entziehung polizeilicher Maßnahmen', fine: 10000, wanteds: 3, mandatory: true },
+                { id: "StGB §33", name: 'Behinderung eines Beamten bei der Arbeit', fine: 10000, wanteds: 0, voluntaryWanteds: 2, mandatory: true },
+                { id: "StGB §34", name: 'Behinderung des EMS bei der Arbeit', fine: 10000, wanteds: 2, mandatory: true },
+                { id: "StGB §35", name: 'Bestechung von Beamten', fine: 10000, wanteds: 1, mandatory: true },
+                { id: "StGB §36", name: 'Widerstand gegen Vollstreckungsbeamte', fine: 20000, wanteds: 2, voluntaryWanteds: 2, mandatory: true },
+                { id: "StGB §37", name: 'Nicht ausweisen bei Maßnahme', fine: 20000, wanteds: 2, mandatory: false },
+                { id: "StGB §38", name: 'Befreiung von Gefangenen', fine: 15000, wanteds: 2, mandatory: true },
+                { id: "StGB §44", name: 'Falsche Namensangabe', fine: 10000, wanteds: 1, mandatory: true },
+                { id: "StGB §23", name: 'Missbrauch von Notruf', fine: 30000, wanteds: 0, voluntaryWanteds: 2, mandatory: true },
+                { id: "StGB §41", name: 'Amtsanmaßung', fine: 30000, wanteds: 0, voluntaryWanteds: 1, mandatory: true },
+                { id: "StGB §29", name: 'Missachtung eines Platzverweises', fine: 30000, wanteds: 0, voluntaryWanteds: 2, mandatory: true }
+            ],
+            "Waffengesetz (WaffG)": [
+                { id: 'WaffG §1', name: 'Besitz legaler Waffen ohne Waffenschein', fine: 10000, mandatoryWanteds: 1, voluntaryWanteds: 1, voluntaryFine: 10000, mandatory: false , info: 'Waffenschein entziehen!' },
+                { id: 'WaffG §2', name: 'Besitz illegaler Waffen', fine: 20000, wanteds: 2, voluntaryWanteds: 1, voluntaryFine: 10000, mandatory: true, info: 'Waffenschein entziehen!' },
+                { id: 'WaffG §3', name: 'Offenes Tragen einer Waffe', fine: 15000, wanteds: 2, mandatory: true, info: 'Waffenschein entziehen!' },
+                { id: 'WaffG §4', name: 'Tragen einer Waffe in staatl. Einrichtungen', fine: 10000, wanteds: 2, mandatory: true, info: 'Waffenschein entziehen!' },
+                { id: 'WaffG §5', name: 'Ungesetzlicher Waffenhandel (An-&Verkauf', fine: 50000, wanteds: 5, mandatory: true, info: 'Waffenschein entziehen!' }
+            ],
+            'Sperrzonen / Absperrungen / Kapitalverbrechen (StGB)': [
+                { id: 'StGB §51', name: 'Durchbrechen von Absperrungen', fine: 15000, wanteds: 1, voluntaryWanteds: 1, mandatory: true },
+                { id: 'StGB §46', name: 'Unbefugtes Betreten militärischer Gelände', fine: 50000, wanteds: 5, mandatory: true },
+                { id: 'StGB §18', name: 'Unerlaubtes Betreten von Sperrzonen', fine: 30000, wanteds: 2, voluntaryWanteds: 1, mandatory: true },
+                { id: 'StGB §47', name: 'Unerlaubtes Befahren von Sperrzonen', fine: 30000, wanteds: 4, voluntaryWanteds: 0, mandatory: true, info: 'Führerschein entziehen' },
+                { id: 'StGB §48', name: 'Terrorismus (Deckt alle Strafen ab)', fine: 50000, wanteds: 5, mandatory: true }
+            ],
+            'Betäubungsmittelgesetz (BtMG)': [
+                { id: 'BtMG §1', name: 'Kokainbesitz', fine: 15000, wanteds: 1, voluntaryWanteds: 0, mandatory: true },
+                { id: 'BtMG §2', name: 'Marihuana besitzt Klein 10 - 25', fine: 15000, wanteds: 1, voluntaryWanteds: 0, mandatory: true },
+                { id: 'BtMG §3', name: 'Drogenbesitz Mittel ab 31 - 50', fine: 20000, wanteds: 2, mandatory: true },
+                { id: 'BtMG §4', name: 'Drogenbesitz Groß 50+', fine: 30000, wanteds: 3, mandatory: true },
+                { id: 'BtMG §5', name: 'Drogenhandel (An- & Verkauf)', fine: 30000, wanteds: 4, mandatory: true },
+                { id: 'BtMG §6', name: 'Drogen Herstellung', fine: 30000, wanteds: 3, mandatory: true },
+                { id: 'BtMG §7', name: 'Verkauf von Medizinprodukten bis 20 Gegenstände', fine: 10000, wanteds: 1, mandatory: true },
+                { id: 'BtMG §8', name: 'Verkauf von Medizinprodukten bis 50 Gegenstände', fine: 25000, wanteds: 1, voluntaryWanteds: 1, mandatory: true },
+                { id: 'BtMG §9', name: 'Verkauf von Medizinprodukten ab 51 Gegenstände', fine: 25000, wanteds: 1, voluntaryWanteds: 2, mandatory: true }
+            ],
+            'Beamtendienstgesetzbuch (BDG)': [
+                { id: 'BDG §1', name: 'Verhaltenskodex', fine: 30000, wanteds: 3, voluntaryWanteds: 2, voluntaryFine: 10000, mandatory: true },
+                { id: 'BDG §2', name: 'Dienstpflicht des Beamten', fine: 30000, wanteds: 3, voluntaryWanteds: 2, voluntaryFine: 10000, mandatory: true },
+                { id: 'BDG §3', name: 'Bestechlichkeit', fine: 50000, wanteds: 5, voluntaryWanteds: 0, mandatory: true },
+                { id: 'BDG §4', name: 'Vorteilnahme & Vorteilgewährung', fine: 30000, wanteds: 3, voluntaryWanteds: 2, voluntaryFine: 10000, mandatory: true },
+                { id: 'BDG §5', name: 'Verleitung zu Straftat', fine: 50000, wanteds: 5, mandatory: true },
+                { id: 'BDG §6', name: 'Unterlassen der Diensthandlung', fine: 30000, wanteds: 3, voluntaryWanteds: 2, voluntaryFine: 10000, mandatory: true },
+                { id: 'BDG §7', name: 'Falschbeurkundung im Amt', fine: 30000, wanteds: 3, voluntaryWanteds: 2, voluntaryFine: 10000, mandatory: true },
+            ],
+            'Strafprozessordnung (StPO)': [
+                { id: '§6 StPO', name: 'Bußgelder nicht bezahlt (500k voll)', fine: 0, wanteds: 5, mandatory: true }
+            ],
+        };
+
+        let selected = new Set();
+        let towVisible = false;
+        let viewMode = 0; // 0=Grid, 1=List, 2=Minimal
+        let sortMode = 0; // 0=Standard, 1=ByPrice
+        let manualStars = [false, false, false, false, false];
+        let voluntaryStars = [false, false, false, false, false];
+        let totalWanteds = 0;
+
+        // Init Logic
+        for (let cat in db) {
+            db[cat].forEach(item => {
+                item.mandatoryWanteds = (typeof item.mandatoryWanteds === 'number')
+                    ? item.mandatoryWanteds
+                    : (item.mandatory ? (Number(item.wanteds) || 0) : 0);
+
+                item.voluntaryWanteds = (typeof item.voluntaryWanteds === 'number')
+                    ? item.voluntaryWanteds
+                    : (item.mandatory ? 0 : (Number(item.wanteds) || 0));
+
+                item.voluntaryIncrease = !!item.voluntaryIncrease;
+
+                const vCount = Math.max(0, Number(item.voluntaryWanteds) || 0);
+                if (!Array.isArray(item.customStarStates) || item.customStarStates.length !== vCount) {
+                    item.customStarStates = new Array(vCount).fill(false);
+                }
+            });
+        }
+
+        function init() {
+            renderCatalog();
+            attachBigStarsHandler();
+
+            // Modal Handlers
+            document.getElementById('tv-rights-btn').addEventListener('click', () => {
+                document.getElementById('tv-modal-backdrop').style.display = 'flex';
+            });
+            document.getElementById('tv-modal-close').addEventListener('click', () => {
+                document.getElementById('tv-modal-backdrop').style.display = 'none';
+            });
+
+            // Copy Warning
+            document.getElementById('rights-warning-no').addEventListener('click', () => {
+                document.getElementById('rights-warning').style.display = 'none';
+            });
+            document.getElementById('rights-warning-yes').addEventListener('click', () => {
+                document.getElementById('rights-warning').style.display = 'none';
+                window.performAkteCopy();
+            });
+
+            // TOW Logic
+            const towOpenBtn = document.getElementById('tow-open-btn');
+            if (towOpenBtn) {
+                towOpenBtn.addEventListener('click', () => {
+                    const towCard = document.getElementById('tow-card');
+                    if (!towCard) return;
+                    const currentlyHidden = getComputedStyle(towCard).display === 'none' || towCard.style.display === 'none';
+                    if (currentlyHidden) {
+                        towCard.style.display = '';
+                        towCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        const speedInput = document.getElementById('tow-speed');
+                        if (speedInput) speedInput.focus();
+                        towOpenBtn.innerText = 'TOW Rechner (Verbergen)';
+                        towVisible = true;
+                    } else {
+                        towCard.style.display = 'none';
+                        towOpenBtn.innerText = '🚗 TOW Rechner';
+                        towVisible = false;
+                    }
+                });
+            }
+
+            // Anwaltsregister
+            const anwaltsBtn = document.getElementById('anwaltsregister-btn');
+            const anwaltsModal = document.getElementById('anwaltsregister-modal-backdrop');
+            const anwaltsClose = document.getElementById('anwaltsregister-modal-close');
+            if (anwaltsBtn) anwaltsBtn.addEventListener('click', () => anwaltsModal.style.display = 'flex');
+            if (anwaltsClose) anwaltsClose.addEventListener('click', () => anwaltsModal.style.display = 'none');
+
+            // Close Modals on backdrop click
+            document.querySelectorAll('.modal-backdrop').forEach(b => {
+                b.addEventListener('click', (e) => {
+                    if (e.target === b) b.style.display = 'none';
+                });
+            });
+
+            // Check Tutorial
+            if (!localStorage.getItem('tutorialSeen_v3')) {
+                openTutorial();
+            }
+
+            // Support Modal Logic
+            const supportBtn = document.getElementById('support-btn');
+            const supportModal = document.getElementById('support-modal');
+            const supportClose = document.getElementById('support-close');
+
+            if (supportBtn) supportBtn.addEventListener('click', () => supportModal.style.display = 'flex');
+            if (supportClose) supportClose.addEventListener('click', () => supportModal.style.display = 'none');
+
+            calculate();
+
+        }
+
+        function saveSupportMsg() {
+            const name = document.getElementById('support-name').value;
+            const msg = document.getElementById('support-message').value;
+            if (!msg) return alert("Bitte eine Nachricht eingeben.");
+
+            // Dummy Save to LocalStorage
+            const entry = { date: new Date().toISOString(), name, msg };
+            const existing = JSON.parse(localStorage.getItem('support_msgs') || "[]");
+            existing.push(entry);
+            localStorage.setItem('support_msgs', JSON.stringify(existing));
+
+            alert("Nachricht gespeichert (Simulation). Danke!");
+            document.getElementById('support-modal').style.display = 'none';
+            document.getElementById('support-message').value = '';
+        }
+
+        function openTutorial() {
+            document.getElementById('tutorial-modal').style.display = 'flex';
+        }
+        function closeTutorial() {
+            document.getElementById('tutorial-modal').style.display = 'none';
+            localStorage.setItem('tutorialSeen_v3', 'true');
+        }
+
+        // THEME HANDLING
+        function setTheme(theme) {
+            document.body.classList.remove('liquid-glass', 'deep-space');
+            if (theme === 'liquid-glass') document.body.classList.add('liquid-glass');
+            else if (theme === 'deep-space') document.body.classList.add('deep-space');
+        }
+
+        function setAccent(color) {
+            document.documentElement.style.setProperty('--accent-blue', color);
+            document.documentElement.style.setProperty('--accent-purple', color);
+        }
+
+        // CATALOG RENDERING
+        function renderCatalog() {
+            const container = document.getElementById('catalog-content');
+            container.innerHTML = '';
+
+            const isList = viewMode === 1;
+            const isMinimal = viewMode === 2;
+            const gridClass = isList ? 'list-mode' : (isMinimal ? 'minimal-mode' : '');
+            const itemClass = isList ? 'list-item' : (isMinimal ? 'minimal-item' : '');
+
+            // Prepare Data Map
+            let dataMap = new Map();
+
+            if (sortMode === 1) {
+                // Flache Liste aller Items, sortiert nach Schwere (Wanteds > Geld)
+                let allItems = [];
+                for (let cat in db) {
+                    db[cat].forEach((item, idx) => {
+                        allItems.push({ item, cat, idx });
+                    });
+                }
+                // Absteigend sortieren
+                allItems.sort((a, b) => {
+                    const mandA = (a.item.mandatoryWanteds || 0);
+                    const volA = (a.item.voluntaryWanteds || 0);
+                    const totalA = mandA + volA;
+
+                    const mandB = (b.item.mandatoryWanteds || 0);
+                    const volB = (b.item.voluntaryWanteds || 0);
+                    const totalB = mandB + volB;
+
+                    // 1. Total Stars (Higher total is worse)
+                    if (totalB !== totalA) return totalB - totalA;
+
+                    // 2. Mandatory Stars (Tie-breaker: "Hard" stars are worse than voluntary ones)
+                    // If Total is equal (e.g. 3 vs 3), the one with 3 Mandatory is > 1 Mandatory + 2 Voluntary
+                    if (mandB !== mandA) return mandB - mandA;
+
+                    // 3. Money
+                    let valA = a.item.fine;
+                    if (Array.isArray(a.item.fineOptions) && a.item.fineOptions.length) valA = Math.max(...a.item.fineOptions);
+                    let valB = b.item.fine;
+                    if (Array.isArray(b.item.fineOptions) && b.item.fineOptions.length) valB = Math.max(...b.item.fineOptions);
+                    return valB - valA;
+                });
+                dataMap.set("Alle Vergehen (nach Schwere)", allItems);
+            } else {
+                // Standard Gruppen
+                for (let cat in db) {
+                    dataMap.set(cat, db[cat].map((item, idx) => ({ item, cat, idx })));
+                }
+            }
+
+            for (let [catHeader, items] of dataMap) {
+                const gridId = `cat-${catHeader.replace(/"/g, '').replace(/\s/g, '')}`;
+                let html = `<div class="category-header">${catHeader}</div><div class="offenses-grid ${gridClass}" id="${gridId}">`;
+
+                items.forEach(wrapper => {
+                    const obj = wrapper.item;
+                    const cat = wrapper.cat;
+                    const idx = wrapper.idx;
+
+                    let starHtml = '';
+                    if (!isMinimal) {
+                        if ((obj.mandatoryWanteds || 0) === 0 && (obj.voluntaryWanteds || 0) === 0) {
+                            starHtml = `<span style="color:#666; font-size:10px;">-</span>`;
+                        } else {
+                            for (let s = 0; s < (obj.mandatoryWanteds || 0); s++) {
+                                starHtml += `<span class="mini-star yellow">★</span>`;
+                            }
+                            for (let s = 0; s < (obj.voluntaryWanteds || 0); s++) {
+                                const converted = obj.customStarStates && obj.customStarStates[s];
+                                const cls = converted ? 'yellow' : 'silver';
+                                starHtml += `<span class="mini-star ${cls}" data-custom-index="${s}">★</span>`;
+                            }
+                        }
+                    }
+
+                    const activeClass = selected.has(obj) ? 'active' : '';
+
+                    const convertedInitial = (obj.customStarStates || []).filter(Boolean).length;
+                    let currentFine = obj.fine + (convertedInitial * getCustomStarCost(obj)) + (obj.voluntaryIncrease ? getCustomStarCost(obj) : 0);
+                    let priceDisplay = '';
+                    if (Array.isArray(obj.fineOptions) && obj.fineOptions.length) {
+                        priceDisplay = obj.fineOptions.map(f => `$${f.toLocaleString()}`).join(' / ');
+                    } else {
+                        priceDisplay = `$${currentFine.toLocaleString()}`;
+                    }
+
+                    // Card Generation
+                    // Note: data-cat AND data-idx MUST point to original DB location for starClick logic!
+                    if (isMinimal) {
+                        html += `
+                        <div class="offense-card ${activeClass} ${itemClass}" 
+                            onclick="toggle('${obj.id}', '${obj.name}')" 
+                            id="card-${obj.id}-${obj.name}"
+                            data-cat="${cat.replace(/"/g, '&quot;')}" data-idx="${idx}">
+                            <h4>${obj.id}</h4>
+                            <p>${obj.name}</p>
+                            <span class="price" id="price-${obj.id}-${obj.name}">${priceDisplay}</span>
+                        </div>`;
+                    }
+                    else {
+                        const wrapperStart = isList ? '' : '<div style="display:flex; justify-content:space-between; align-items:center;">';
+                        const wrapperEnd = isList ? '' : '</div>';
+
+                        html += `
+                        <div class="offense-card ${activeClass} ${itemClass}" 
+                            onclick="toggle('${obj.id}', '${obj.name}')" 
+                            id="card-${obj.id}-${obj.name}"
+                            data-cat="${cat.replace(/"/g, '&quot;')}" data-idx="${idx}">
+                            <h4>${obj.id}</h4>
+                            <p>${obj.name}</p>
+                            ${wrapperStart}
+                                <div class="wanteds" id="stars-${obj.id}-${obj.name}" onclick="starClick(event, '${obj.id}', '${obj.name}')">${starHtml}</div>
+                                <span class="price" id="price-${obj.id}-${obj.name}">${priceDisplay}</span>
+                            ${wrapperEnd}
+                        </div>`;
+                    }
+                });
+                container.innerHTML += html + `</div>`;
+            }
+
+            attachSearch();
+            updateViewButtonText();
+        }
+
+        function cycleView() {
+            viewMode = (viewMode + 1) % 3;
+            const container = document.getElementById('catalog-container');
+
+            // Handle Header Row for List View
+            if (viewMode === 1) container.classList.add('list-view-active');
+            else container.classList.remove('list-view-active');
+
+            updateViewButtonText();
+            renderCatalog();
+        }
+
+        function toggleSort() {
+            sortMode = (sortMode + 1) % 2;
+            const btn = document.getElementById('sort-toggle');
+            if (sortMode === 0) {
+                btn.innerText = "Sortierung: Standard";
+                btn.style.borderColor = "";
+                btn.style.color = "";
+            } else {
+                btn.innerText = "Sortierung: Schwere ↓";
+                btn.style.borderColor = "var(--gold)";
+                btn.style.color = "var(--gold)";
+            }
+            renderCatalog();
+        }
+
+        function updateViewButtonText() {
+            const btn = document.getElementById('view-toggle');
+            if (viewMode === 0) btn.innerText = "Ansicht: Raster";
+            else if (viewMode === 1) btn.innerText = "Ansicht: Liste";
+            else if (viewMode === 2) btn.innerText = "Ansicht: Kompakt";
+        }
+
+        function attachSearch() {
+            const search = document.getElementById('catalog-search');
+            if (!search) return;
+
+            // Re-attach listener by cloning to avoid duplicates
+            const newSearch = search.cloneNode(true);
+            search.parentNode.replaceChild(newSearch, search);
+
+            newSearch.addEventListener('input', () => {
+                const q = newSearch.value.trim().toLowerCase();
+                document.querySelectorAll('.offense-card').forEach(card => {
+                    if (card.id === 'tow-card') return; // handle separately or ignore
+
+                    const title = card.querySelector('h4')?.innerText?.toLowerCase() || '';
+                    const text = card.innerText.toLowerCase();
+
+                    // Determine display style based on view mode
+                    let displayStyle = '';
+                    if (viewMode === 0) displayStyle = 'flex'; // Grid items are flex col
+                    else displayStyle = 'grid'; // List/Minimal items are grid
+
+                    if (q === '') {
+                        card.style.display = displayStyle;
+                    }
+                    else if (text.includes(q) || title.includes(q)) {
+                        card.style.display = displayStyle;
+                    }
+                    else {
+                        card.style.display = 'none';
+                    }
+                });
+            });
+
+            // Restore focus if searching
+            if (search === document.activeElement) newSearch.focus();
+        }
+
+
+        // TOW CALCULATOR LOGIC
+        function attachTowCalculator() {
+            const calcBtn = document.getElementById('tow-calc-btn');
+            const copyBtn = document.getElementById('tow-copy-btn');
+            const resetBtn = document.getElementById('tow-reset-btn');
+
+            function computeTow() {
+                const zone = parseInt(document.getElementById('tow-zone').value) || 50;
+                const speed = parseInt(document.getElementById('tow-speed').value) || 0;
+                const plate = document.getElementById('tow-plate').value || '';
+
+                const diff = speed - zone;
+                let offense = 'Keine Ordnungswidrigkeit';
+                let fine = '$ 0';
+                let paragraph = '-';
+
+                const stvo = db['Straßenverkehrsordnung (StVO)'] || [];
+                function findStvoByRange(labelPart) {
+                    return stvo.find(e => e.name && e.name.toLowerCase().includes(labelPart.toLowerCase()));
+                }
+
+                if (diff <= 0) {
+                    offense = 'Keine Ordnungswidrigkeit'; fine = '$ 0'; paragraph = '-';
+                } else if (diff <= 40) {
+                    const e = findStvoByRange('10 - 40');
+                    if (e) { offense = `${e.id} — ${e.name}`; fine = `$ ${e.fine.toLocaleString()}`; paragraph = e.id; }
+                } else if (diff <= 60) {
+                    const e = findStvoByRange('41 - 60');
+                    if (e) { offense = `${e.id} — ${e.name}`; fine = `$ ${e.fine.toLocaleString()}`; paragraph = e.id; }
+                } else if (diff <= 100) {
+                    const e = findStvoByRange('61 - 100');
+                    if (e) { offense = `${e.id} — ${e.name}`; fine = `$ ${e.fine.toLocaleString()}`; paragraph = e.id; }
+                } else {
+                    const e = findStvoByRange('ab 101') || findStvoByRange('101');
+                    if (e) { offense = `${e.id} — ${e.name}`; fine = `$ ${e.fine.toLocaleString()}`; paragraph = e.id; }
+                }
+
+                if (diff > 40) offense += ' — Abschleppberechtigt';
+
+                document.getElementById('tow-offense').value = offense;
+                document.getElementById('tow-fine').value = fine;
+
+                const now = new Date();
+                const dateStr = `${String(now.getDate()).padStart(2, '0')}.${String(now.getMonth() + 1).padStart(2, '0')}`;
+                const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+                const location = document.getElementById('tow-location').value || '';
+                const akte = `${dateStr} ${timeStr} - ${paragraph}${location ? ' @' + location : ''}${plate ? ' - ' + plate : ''}`;
+                document.getElementById('tow-akte').value = akte;
+            }
+
+            function copyTow() {
+                const akte = document.getElementById('tow-akte')?.value || '';
+                const plate = document.getElementById('tow-plate')?.value || '';
+
+                let text = akte;
+
+                // Nur anhängen, wenn Kennzeichen NICHT schon drin ist
+                if (plate && !akte.includes(plate)) {
+                    text += ` - ${plate}`;
+                }
+
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                    navigator.clipboard.writeText(text).then(() => {
+                        const n = document.getElementById('copy-notice');
+                        if (n) {
+                            n.style.display = 'block';
+                            setTimeout(() => n.style.display = 'none', 1800);
+                        }
+                    }).catch(err => {
+                        alert('Fehler beim Kopieren in die Zwischenablage: ' + err);
+                    });
+                } else {
+                    alert('Ihr Browser unterstützt das Kopieren in die Zwischenablage nicht.');
+                }
+            }
+
+
+
+            function resetTow() {
+                document.getElementById('tow-plate').value = '';
+                document.getElementById('tow-location').value = '';
+                document.getElementById('tow-speed').value = '';
+                document.getElementById('tow-offense').value = '';
+                document.getElementById('tow-fine').value = '';
+                document.getElementById('tow-akte').value = '';
+                document.getElementById('tow-zone').value = '150';
+            }
+
+            if (calcBtn) calcBtn.addEventListener('click', computeTow);
+            if (copyBtn) copyBtn.addEventListener('click', copyTow);
+            if (resetBtn) resetBtn.addEventListener('click', resetTow);
+        }
+
+        window.addEventListener('DOMContentLoaded', () => { attachTowCalculator(); });
+
+        // INTERACTION LOGIC
+        function toggle(id, name) {
+            let item;
+            for (let c in db) { item = db[c].find(x => x.id === id && x.name === name); if (item) break; }
+            const el = document.getElementById(`card-${id}-${name}`);
+
+            if (selected.has(item)) {
+                selected.delete(item);
+                if (el) el.classList.remove('active');
+            } else {
+                if (item) {
+                    item.voluntaryIncrease = false;
+                    if (item.voluntaryWanteds > 0) {
+                        item.customStarStates = new Array(item.voluntaryWanteds).fill(false);
+                    }
+                }
+                selected.add(item);
+                if (el) el.classList.add('active');
+                if (item) updateCardVisuals(item);
+            }
+            calculate();
+        }
+
+        function starClick(event, id, name) {
+            event.stopPropagation();
+            const target = event.target;
+            if (!target || !target.classList.contains('mini-star')) return;
+
+            const idxAttr = target.getAttribute('data-custom-index');
+            if (idxAttr === null) return;
+            const idx = parseInt(idxAttr);
+            if (Number.isNaN(idx)) return;
+
+            const card = target.closest('.offense-card');
+            if (!card) return;
+            const cat = card.dataset.cat;
+            const idxInCat = parseInt(card.dataset.idx);
+
+            const item = (db[cat] || [])[idxInCat];
+            if (!item) return;
+
+            if (!item.customStarStates) item.customStarStates = new Array(item.voluntaryWanteds || 0).fill(false);
+
+            item.customStarStates[idx] = !item.customStarStates[idx];
+            selected.add(item); // Ensure item is selected if star clicked
+            card.classList.add('active');
+
+            updateCardVisuals(item);
+            calculate();
+        }
+
+        function updateCardVisuals(obj) {
+            // If Minimal mode, we just update Price
+            if (viewMode === 2) {
+                const card = document.getElementById(`card-${obj.id}-${obj.name}`);
+                if (!card) return;
+                const priceEl = document.getElementById(`price-${obj.id}-${obj.name}`);
+
+                let currentFine = obj.fine + (obj.voluntaryIncrease ? getCustomStarCost(obj) : 0);
+                // Note: In minimal mode, we can't easily click stars, so assume default. 
+                // But if logic keeps state, we should calculate it.
+                const convertedCount = (obj.customStarStates || []).filter(Boolean).length;
+                currentFine += (convertedCount * getCustomStarCost(obj));
+
+                if (priceEl) priceEl.innerText = `$${currentFine.toLocaleString()}`;
+                return;
+            }
+
+            let starHtml = '';
+            if ((obj.mandatoryWanteds || 0) === 0 && (obj.voluntaryWanteds || 0) === 0) {
+                starHtml = `<span style="color:#666; font-size:10px;">-</span>`;
+            } else {
+                for (let s = 0; s < (obj.mandatoryWanteds || 0); s++) {
+                    starHtml += `<span class="mini-star yellow">★</span>`;
+                }
+                for (let s = 0; s < (obj.voluntaryWanteds || 0); s++) {
+                    const converted = obj.customStarStates && obj.customStarStates[s];
+                    const cls = converted ? 'yellow' : 'silver';
+                    starHtml += `<span class="mini-star ${cls}" data-custom-index="${s}">★</span>`;
+                }
+            }
+
+            const card = document.getElementById(`card-${obj.id}-${obj.name}`);
+            let starsEl = document.getElementById(`stars-${obj.id}-${obj.name}`);
+            let priceEl = document.getElementById(`price-${obj.id}-${obj.name}`);
+
+            if (starsEl) starsEl.innerHTML = starHtml;
+
+            const convertedCount = (obj.customStarStates || []).filter(Boolean).length;
+            let currentFine = obj.fine + (convertedCount * getCustomStarCost(obj)) + (obj.voluntaryIncrease ? getCustomStarCost(obj) : 0);
+            if (priceEl) priceEl.innerText = `$${currentFine.toLocaleString()}`;
+
+            if (card) {
+                if (obj.voluntaryIncrease) card.classList.add('voluntary'); else card.classList.remove('voluntary');
+            }
+        }
+
+        // MAIN CALCULATION
+        function calculate() {
+            let maxFine = 0, baseWanteds = 0, isM = false, paragraphs = [], infos = [];
+            let totalExtraFine = 0;
+            let mostSevere = null;
+
+            const useLongReason = document.getElementById('long-reason-switch') ? document.getElementById('long-reason-switch').checked : false;
+
+            const special = Array.from(selected).find(it => it && it.id === 'StGB §25');
+
+            if (special) {
+                mostSevere = special;
+                maxFine = special.fine || 0;
+                const convertedCount = (special.customStarStates || []).filter(Boolean).length;
+                totalExtraFine = convertedCount * getCustomStarCost(special);
+                if (special.voluntaryIncrease) totalExtraFine += getCustomStarCost(special);
+
+                baseWanteds = (special.mandatoryWanteds || 0) + convertedCount + (special.voluntaryIncrease ? 1 : 0);
+                isM = (special.mandatoryWanteds || 0) > 0;
+
+                const pText = useLongReason ? `${special.id} - ${special.name}` : special.id;
+                paragraphs = [pText];
+                if (special.info) infos.push(special.info);
+            } else {
+                let maxMandatoryWanteds = -1;
+                selected.forEach(i => {
+                    const pText = useLongReason ? `${i.id} - ${i.name}` : i.id;
+                    paragraphs.push(pText);
+
+                    if (i.info) infos.push(i.info);
+
+                    const mandatoryCount = i.mandatoryWanteds || 0;
+                    if (mandatoryCount > maxMandatoryWanteds ||
+                        (mandatoryCount === maxMandatoryWanteds && (i.fine || 0) > (mostSevere?.fine || 0))) {
+                        maxMandatoryWanteds = mandatoryCount;
+                        mostSevere = i;
+                    }
+                });
+
+                if (!mostSevere || maxMandatoryWanteds === 0) {
+                    selected.forEach(i => {
+                        if ((i.fine || 0) > (mostSevere?.fine || 0)) {
+                            mostSevere = i;
+                        }
+                    });
+                }
+
+                if (mostSevere) {
+                    maxFine = mostSevere.fine || 0;
+                    const convertedCount = (mostSevere.customStarStates || []).filter(Boolean).length;
+                    totalExtraFine = convertedCount * getCustomStarCost(mostSevere);
+                    if (mostSevere.voluntaryIncrease) totalExtraFine += getCustomStarCost(mostSevere);
+
+                    baseWanteds = (mostSevere.mandatoryWanteds || 0) + convertedCount + (mostSevere.voluntaryIncrease ? 1 : 0);
+                    isM = (mostSevere.mandatoryWanteds || 0) > 0;
+                }
+            }
+
+            let voluntaryStarsFine = 0;
+            let totalVoluntaryWanteds = 0;
+
+            if (mostSevere) {
+                totalVoluntaryWanteds = mostSevere.voluntaryWanteds || 0;
+            }
+
+            for (let i = 0; i < Math.min(5, totalVoluntaryWanteds); i++) {
+                if (voluntaryStars[i] && mostSevere && mostSevere.voluntaryFine) {
+                    voluntaryStarsFine += mostSevere.voluntaryFine;
+                }
+            }
+
+            let totalTotal = maxFine + totalExtraFine + voluntaryStarsFine;
+
+            let displayMandatoryWanteds = baseWanteds;
+            let displayVoluntaryWanteds = totalVoluntaryWanteds;
+
+            const remainingSlots = Math.max(0, 5 - displayMandatoryWanteds);
+            displayVoluntaryWanteds = Math.min(displayVoluntaryWanteds, remainingSlots);
+
+            let finalWanteds = displayMandatoryWanteds;
+
+            const preventsReue = Array.from(selected).some(item =>
+                item && (item.id === 'StGB §35' || item.id === '§6 StPO')
+            );
+
+            const reueSwitch = document.getElementById('reue-switch');
+            if (reueSwitch) {
+                reueSwitch.disabled = preventsReue;
+                if (preventsReue) reueSwitch.checked = false;
+            }
+
+            const reue = reueSwitch && reueSwitch.checked && !preventsReue;
+            if (reue && finalWanteds > 0) {
+                finalWanteds = Math.max(1, finalWanteds - 2);
+            }
+
+            document.getElementById('res-money').innerText = `$ ${totalTotal.toLocaleString()}`;
+
+            // Render Big Stars
+            let starsHtml = '';
+            for (let i = 0; i < displayMandatoryWanteds; i++) {
+                let cls = 'empty';
+                if (manualStars[i]) cls = 'active-yellow';
+                else if (i < finalWanteds) cls = isM ? 'active-yellow' : 'active-gray';
+
+                starsHtml += `<span class="big-star ${cls}" data-index="${i}" data-type="mandatory">★</span>`;
+            }
+
+            for (let i = 0; i < displayVoluntaryWanteds; i++) {
+                const isActivated = voluntaryStars[i] || false;
+                const cls = isActivated ? 'voluntary-active' : 'voluntary-inactive';
+                starsHtml += `<span class="big-star ${cls}" data-index="${displayMandatoryWanteds + i}" data-type="voluntary" data-voluntary-index="${i}">★</span>`;
+            }
+
+            const totalStarsShown = displayMandatoryWanteds + displayVoluntaryWanteds;
+            for (let i = totalStarsShown; i < 5; i++) {
+                starsHtml += `<span class="big-star empty" data-index="${i}" data-type="empty">★</span>`;
+            }
+
+            document.getElementById('res-stars').innerHTML = starsHtml;
+
+            // Build Akte String
+            const now = new Date();
+            const dateStr = `${String(now.getDate()).padStart(2, '0')}.${String(now.getMonth() + 1).padStart(2, '0')}`;
+            const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+            const sysValue = document.getElementById('in-sys').value;
+            const sys = parseInt(sysValue) || 0;
+            totalWanteds = finalWanteds + sys;
+            const orga = document.getElementById('in-orga').value;
+            const name = document.getElementById('in-name').value;
+            const sysErr = document.getElementById('sys-error-switch') ? document.getElementById('sys-error-switch').checked : false;
+
+            let akteParagraphs = paragraphs.slice();
+            if (reue) akteParagraphs.push(useLongReason ? 'StGB §35 - Reue' : 'StGB §35');
+            if (document.getElementById('repeat-switch')?.checked) akteParagraphs.push(useLongReason ? 'StVO §25 - Wiederholungstäter' : 'StVO §25');
+
+            let akte = `${dateStr} ${timeStr} - ${akteParagraphs.length ? akteParagraphs.join(' + ') : '...'}`;
+            if (sys > 0) akte += ` + ${sys} Systemwanteds`;
+            if (sysErr) akte += ` + Systemfehler`;
+
+            if (orga) akte += ` @${orga}`;
+            if (name) akte += ` ${name}`;
+            const plate = document.getElementById('in-plate')?.value;
+            if (plate) akte += ` - ${plate}`;
+
+            document.getElementById('res-akte').innerText = akte;
+
+            const infoBoxSmall = document.getElementById('info-box-small');
+            if (infos.length) {
+                infoBoxSmall.style.display = 'block';
+                document.getElementById('info-list-small').innerHTML = [...new Set(infos)].join('<br>');
+            } else infoBoxSmall.style.display = 'none';
+        }
+
+        function resetAll() {
+            selected.clear();
+            for (let cat in db) {
+                db[cat].forEach(item => {
+                    item.customStarStates = item.voluntaryWanteds > 0 ? new Array(item.voluntaryWanteds).fill(false) : [];
+                    item.voluntaryIncrease = false;
+                });
+            }
+            renderCatalog();
+            document.getElementById('in-sys').value = 0;
+            document.getElementById('in-orga').value = '';
+            document.getElementById('in-name').value = '';
+            const p = document.getElementById('in-plate'); if (p) p.value = '';
+            document.getElementById('reue-switch').checked = false;
+            document.getElementById('long-reason-switch').checked = false;
+            const rs = document.getElementById('repeat-switch'); if (rs) rs.checked = false;
+            const sef = document.getElementById('sys-error-switch');
+            if (sef) sef.checked = false;
+            manualStars = [false, false, false, false, false];
+            voluntaryStars = [false, false, false, false, false];
+            calculate();
+        }
+
+        function copyAkte() {
+            const text = document.getElementById('res-akte').innerText;
+            if (text.includes('...')) return;
+
+            if (totalWanteds > 0) {
+                document.getElementById('rights-warning').style.display = 'block';
+                window.pendingAkteCopy = text;
+            } else {
+                window.pendingAkteCopy = text;
+                window.performAkteCopy();
+            }
+        }
+
+        window.performAkteCopy = function () {
+            const text = window.pendingAkteCopy;
+            if (!text) return;
+
+            function showNotice() {
+                const n = document.getElementById('copy-notice');
+                n.style.display = 'block';
+                setTimeout(() => { n.style.display = 'none'; }, 1800);
+            }
+
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(text).then(showNotice).catch(() => { });
+            } else {
+                const ta = document.createElement('textarea');
+                ta.value = text;
+                ta.style.position = 'fixed';
+                ta.style.left = '-9999px';
+                document.body.appendChild(ta);
+                ta.select();
+                try { document.execCommand('copy'); showNotice(); } catch (e) { }
+                document.body.removeChild(ta);
+            }
+            window.pendingAkteCopy = null;
+        }
+
+        function attachBigStarsHandler() {
+            const container = document.getElementById('res-stars');
+            if (!container) return;
+            container.addEventListener('click', (ev) => {
+                const t = ev.target.closest ? ev.target.closest('.big-star') : null;
+                if (!t) return;
+                const idx = parseInt(t.dataset.index);
+                if (Number.isNaN(idx)) return;
+                const starType = t.dataset.type;
+
+                if (starType === 'voluntary') {
+                    const voluntaryIndex = parseInt(t.dataset.voluntaryIndex);
+                    if (!Number.isNaN(voluntaryIndex)) {
+                        // Logic to toggle voluntary stars based on most severe crime logic
+                        // This re-implements calculation logic briefly to know which item to toggle
+                        // Ideally should be centralized, but here we toggle state and recalculate.
+                        voluntaryStars[voluntaryIndex] = !voluntaryStars[voluntaryIndex];
+                        calculate();
+                        return;
+                    }
+                }
+            });
+        }
+
+        function getCustomStarCost(item) {
+            if (!item) return 0;
+            if (Object.prototype.hasOwnProperty.call(item, 'voluntaryFine') && typeof item.voluntaryFine === 'number') {
+                return item.voluntaryFine;
+            }
+            return 0;
+        }
+
+
+        // Modal Helper for Support Logic
+        function setupSupportModal() {
+            const modal = document.getElementById('support-modal');
+            const closeButton = document.getElementById('support-close');
+
+            if (modal) {
+                modal.style.display = 'none';
+                modal.addEventListener('click', (event) => {
+                    if (event.target === modal) modal.style.display = 'none';
+                });
+            }
+            if (closeButton) {
+                closeButton.addEventListener('click', () => { if (modal) modal.style.display = 'none'; });
+            }
+        }
+        setupSupportModal();
+
+        /* === FEEDBACK SYSTEM (Unified) === */
+        const WEBHOOK_URL = "https://discord.com/api/webhooks/1473263620669309055/VYjjNUS-iQyUW4AS_QkvvN32tSr7y3C7iBWLmgoUTMou7pk9co2jFD86hR3rX3Ang4_V";
+        const FEEDBACK_KEY = 'bussgeld_feedback_state_v1';
+        const ONE_DAY_MS = 24 * 60 * 60 * 1000;
+
+        window.addEventListener('DOMContentLoaded', () => {
+            init();
+            setupFeedbackSystem();
+        });
+
+        function setupFeedbackSystem() {
+            checkFeedbackTimer();
+
+            const stars = document.querySelectorAll('.feedback-star');
+            const msgBox = document.getElementById('feedback-message');
+            const submitBtn = document.getElementById('feedback-submit');
+            const laterBtn = document.getElementById('feedback-later');
+            const neverBtn = document.getElementById('feedback-never');
+            const openerBtn = document.getElementById('feedback-opener-btn');
+
+            if (openerBtn) openerBtn.addEventListener('click', openFeedbackModal);
+
+            if (stars) {
+                stars.forEach(star => {
+                    star.addEventListener('mouseenter', () => updateStarsVisual(parseInt(star.dataset.value), true));
+                    star.addEventListener('mouseleave', () => updateStarsVisual(window.currentRating || 0, false));
+                    star.addEventListener('click', () => {
+                        window.currentRating = parseInt(star.dataset.value);
+                        updateStarsVisual(window.currentRating, false);
+                        if (msgBox && msgBox.style.display === 'none') {
+                            msgBox.style.display = 'block';
+                            msgBox.focus();
+                        }
+                    });
+                });
+            }
+
+            if (laterBtn) laterBtn.addEventListener('click', () => {
+                localStorage.setItem(FEEDBACK_KEY, JSON.stringify({ status: 'later', timestamp: Date.now() }));
+                closeFeedbackModal();
+            });
+
+            if (neverBtn) neverBtn.addEventListener('click', () => {
+                localStorage.setItem(FEEDBACK_KEY, JSON.stringify({ status: 'never', timestamp: Date.now() }));
+                closeFeedbackModal();
+            });
+
+            if (submitBtn) submitBtn.addEventListener('click', sendFeedback);
+        }
+
+        function checkFeedbackTimer() {
+            const stateStr = localStorage.getItem(FEEDBACK_KEY);
+            const now = Date.now();
+
+            if (!stateStr) {
+                setTimeout(openFeedbackModal, 3000);
+                return;
+            }
+
+            try {
+                const state = JSON.parse(stateStr);
+                if (state.status === 'submitted' || state.status === 'never') return;
+
+                if (state.status === 'later') {
+                    if ((now - state.timestamp) > ONE_DAY_MS) {
+                        setTimeout(openFeedbackModal, 4000);
+                    }
+                }
+            } catch (e) { localStorage.removeItem(FEEDBACK_KEY); }
+        }
+
+        function openFeedbackModal() {
+            const modal = document.getElementById('feedback-modal');
+            if (modal) modal.style.display = 'flex';
+        }
+
+        function closeFeedbackModal() {
+            const modal = document.getElementById('feedback-modal');
+            if (modal) modal.style.display = 'none';
+        }
+
+        function updateStarsVisual(val, isHover) {
+            const stars = document.querySelectorAll('.feedback-star');
+            stars.forEach(s => {
+                const sVal = parseInt(s.dataset.value);
+                s.classList.remove('hover');
+                s.classList.remove('active');
+                if (sVal <= val) {
+                    if (isHover) s.classList.add('hover'); else s.classList.add('active');
+                }
+            });
+        }
+
+        async function sendFeedback() {
+            const rating = window.currentRating || 0;
+            if (rating === 0) {
+                const btn = document.getElementById('feedback-submit');
+                btn.classList.add('shake');
+                setTimeout(() => btn.classList.remove('shake'), 500);
+                return;
+            }
+
+            const textField = document.getElementById('feedback-message');
+            const text = textField ? textField.value : "";
+            const btn = document.getElementById('feedback-submit');
+            const originalText = btn.innerHTML; // Save original text
+
+            btn.disabled = true;
+            btn.innerHTML = `<span class="spin">↻</span> Sende...`;
+
+            try {
+                const payload = {
+                    embeds: [{
+                        title: `⭐ Neues Feedback: ${rating} Sterne`,
+                        color: rating >= 4 ? 0x22c55e : (rating >= 3 ? 0xffcc00 : 0xef4444),
+                        description: text || "*Keine zusätzliche Nachricht*",
+                        timestamp: new Date().toISOString(),
+                        footer: { text: "Bußgeldrechner v1.0 Feedback" }
+                    }]
+                };
+
+                // Send to Discord
+                const res = await fetch(WEBHOOK_URL, {
+                    method: "POST",
+                    body: JSON.stringify(payload),
+                    headers: { 'Content-Type': 'application/json' }
+                });
+
+                if (res.ok) {
+                    localStorage.setItem(FEEDBACK_KEY, JSON.stringify({ status: 'submitted', timestamp: Date.now() }));
+                    btn.innerHTML = "Gesendet! ❤️";
+                    btn.style.background = "#22c55e";
+
+                    setTimeout(() => {
+                        closeFeedbackModal();
+                        // Reset button state slightly delayed so user sees success
+                        setTimeout(() => {
+                            btn.innerHTML = originalText;
+                            btn.disabled = false;
+                            btn.style.background = "";
+                            if (textField) textField.value = "";
+                            window.currentRating = 0;
+                            updateStarsVisual(0, false);
+                        }, 500);
+                    }, 2000);
+                } else {
+                    throw new Error("Fehler beim Senden");
+                }
+            } catch (e) {
+                console.error(e);
+                btn.innerHTML = "Fehler ❌";
+                setTimeout(() => {
+                    btn.innerHTML = originalText;
+                    btn.disabled = false;
+                }, 3000);
+            }
+        }
+    </script>
+
+    <!-- Feedback Modal HTML -->
+    <div id="feedback-modal" class="modal-backdrop" style="z-index: 20000;">
+        <div class="modal"
+            style="text-align:center; max-width:420px; border:1px solid rgba(255,255,255,0.1); background: var(--panel); backdrop-filter: blur(20px);">
+
+            <div
+                style="position:absolute; top:-40px; left:50%; transform:translateX(-50%); background:var(--accent-blue); width:80px; height:80px; border-radius:50%; display:flex; align-items:center; justify-content:center; box-shadow: 0 10px 30px rgba(0,210,255,0.3); border:4px solid #161618;">
+                <span style="font-size:2.5rem;">💌</span>
+            </div>
+
+            <h3 style="color:var(--text); margin-top:35px; margin-bottom:5px; font-size:1.3rem;">Deine Meinung zählt!
+            </h3>
+            <p style="color:#bbb; font-size:0.9rem; margin-bottom:25px; line-height:1.5;">Hilf uns, den Bußgeldrechner
+                zu verbessern.<br>Wie zufrieden bist du?</p>
+
+            <div id="star-container"
+                style="display:flex; justify-content:center; gap:8px; margin-bottom:25px; background:rgba(255,255,255,0.03); padding:15px; border-radius:12px;">
+                <span class="feedback-star" data-value="1" style="font-size:2rem; cursor:pointer;">★</span>
+                <span class="feedback-star" data-value="2" style="font-size:2rem; cursor:pointer;">★</span>
+                <span class="feedback-star" data-value="3" style="font-size:2rem; cursor:pointer;">★</span>
+                <span class="feedback-star" data-value="4" style="font-size:2rem; cursor:pointer;">★</span>
+                <span class="feedback-star" data-value="5" style="font-size:2rem; cursor:pointer;">★</span>
+            </div>
+
+            <textarea id="feedback-message" placeholder="Was können wir besser machen? (Optional)"
+                style="width:100%; height:80px; margin-bottom:15px; display:none; padding:12px; border-radius:8px; background:rgba(0,0,0,0.5); border:1px solid rgba(255,255,255,0.1); color:white; font-family:inherit; resize:none;"></textarea>
+
+            <div style="display:flex; flex-direction:column; gap:10px;">
+                <button id="feedback-submit" class="small-btn"
+                    style="background:linear-gradient(45deg, var(--accent-blue), var(--accent-purple)); color:#fff; font-weight:bold; padding:12px; font-size:1rem; border:none; box-shadow:0 5px 15px rgba(0,0,0,0.3);">Bewerten</button>
+                <div style="display:flex; justify-content:space-between; margin-top:5px;">
+                    <button id="feedback-never" class="small-btn"
+                        style="background:transparent; border:none; color:#555; font-size:0.8rem;">Nicht mehr
+                        anzeigen</button>
+                    <button id="feedback-later" class="small-btn"
+                        style="background:transparent; border:none; color:#888; font-size:0.8rem;">Später
+                        erinnern</button>
+                </div>
+            </div>
+        </div>
+    </div>
+<script defer src="https://static.cloudflareinsights.com/beacon.min.js/v8c78df7c7c0f484497ecbca7046644da1771523124516" integrity="sha512-8DS7rgIrAmghBFwoOTujcf6D9rXvH8xm8JQ1Ja01h9QX8EzXldiszufYa4IFfKdLUKTTrnSFXLDkUEOTrZQ8Qg==" data-cf-beacon='{"version":"2024.11.0","token":"3385e2a1d1634590818dd90fe31dccb6","r":1,"server_timing":{"name":{"cfCacheStatus":true,"cfEdge":true,"cfExtPri":true,"cfL4":true,"cfOrigin":true,"cfSpeedBrain":true},"location_startswith":null}}' crossorigin="anonymous"></script>
+</body>
+
+</html>
